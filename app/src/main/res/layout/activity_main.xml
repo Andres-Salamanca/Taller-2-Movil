@@ -12,17 +12,17 @@
         android:id="@+id/imageButtonContactos"
         android:layout_width="250dp"
         android:layout_height="250dp"
-        android:background="@color/black" />
+        android:background="@drawable/contacts" />
 
     <ImageButton
         android:id="@+id/imageButtonCamara"
         android:layout_width="250dp"
         android:layout_height="250dp"
-        android:background="@color/black" />
+        android:background="@drawable/camera" />
 
     <ImageButton
         android:id="@+id/imageButtonMapa"
         android:layout_width="250dp"
         android:layout_height="250dp"
-        android:background="@color/black"/>
+        android:background="@drawable/osmap"/>
 </LinearLayout>

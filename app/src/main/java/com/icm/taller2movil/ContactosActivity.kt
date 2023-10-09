@@ -12,10 +12,12 @@ import android.database.Cursor
 import android.provider.ContactsContract
 import android.util.Log
 import android.widget.ListView
+import androidx.core.app.ActivityCompat
 
 class ContactosActivity : AppCompatActivity() {
 
     lateinit var bindingContactos: ActivityContactosBinding
+    private val READ_CONTACTS_PERMISSION_REQUEST = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,20 +27,25 @@ class ContactosActivity : AppCompatActivity() {
         val view = bindingContactos.root
         setContentView(view)
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
-            != PackageManager.PERMISSION_GRANTED
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_CONTACTS
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Toast.makeText(this, "El permiso de contactos no fue concedido", Toast.LENGTH_LONG).show()
-
-
+            // Si no está concedido, solicita el permiso
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_CONTACTS),
+                READ_CONTACTS_PERMISSION_REQUEST
+            )
         } else {
-            //retrieveContacts()
-
+            // El permiso ya está concedido, puedes realizar la operación que requiere el permiso
+            retrieveContacts()
         }
 
 
     }
-    /*private fun retrieveContacts() {
+    private fun retrieveContacts() {
         val contactsList = mutableListOf<String>()
         val projection = arrayOf(ContactsContract.Contacts.DISPLAY_NAME)
 
@@ -61,5 +68,28 @@ class ContactosActivity : AppCompatActivity() {
 
         val adapter = ContactsAdapter(this, contactsList)
         bindingContactos.listview.adapter = adapter
-    }*/
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            READ_CONTACTS_PERMISSION_REQUEST -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permiso concedido, realiza la operación que requiere el permiso
+                    retrieveContacts()
+                } else {
+                    // Permiso denegado, muestra un mensaje o realiza alguna acción
+                    Toast.makeText(
+                        this,
+                        "El permiso de contactos fue denegado",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
 }
