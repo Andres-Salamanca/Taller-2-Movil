@@ -1,5 +1,6 @@
 package com.icm.taller2movil
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.icm.taller2movil.databinding.ActivityMainBinding
@@ -17,7 +18,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(view)
 
         bindingMain.imageButtonContactos.setOnClickListener{
-
+            val pasarContactos = Intent(this,ContactosActivity::class.java)
+            startActivity(pasarContactos)
         }
 
 
