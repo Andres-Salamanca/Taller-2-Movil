@@ -34,17 +34,17 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <Button
-            android:id="@+id/button"
+            android:id="@+id/buttonEscoger"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Button" />
+            android:text="escoger" />
 
         <Button
-            android:id="@+id/button2"
+            android:id="@+id/buttonCamara"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Button" />
+            android:text="camara" />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
