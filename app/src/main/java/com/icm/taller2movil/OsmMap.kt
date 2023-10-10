@@ -13,14 +13,17 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.view.MotionEvent
+import android.location.Geocoder
+import android.util.Log
+import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.views.overlay.ItemizedIconOverlay
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.OverlayItem
 import org.osmdroid.views.overlay.TilesOverlay
+import java.io.IOException
+import kotlin.math.log
 
 
 class OsmMap : AppCompatActivity() {
@@ -65,6 +68,19 @@ class OsmMap : AppCompatActivity() {
             }
         })
         binding.map.overlays.add(0, mapEventsOverlay)
+
+        binding.editTextText.setOnEditorActionListener { textView, actionId, keyEvent ->
+            if (actionId == EditorInfo.IME_ACTION_DONE ||
+                (keyEvent?.action == KeyEvent.ACTION_DOWN && keyEvent.keyCode == KeyEvent.KEYCODE_ENTER)) {
+                // Realiza la acción que deseas aquí
+                Log.i("lugar", textView.text.toString())
+                val locationName = textView.text.toString()
+                searchLocationAndMoveMap(locationName)
+                return@setOnEditorActionListener true
+            }
+            false
+        }
+
 
     }
 
@@ -131,6 +147,32 @@ class OsmMap : AppCompatActivity() {
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         }
         return marker
+    }
+
+    private fun searchLocationAndMoveMap(locationName: String) {
+        val geocoder = Geocoder(this)
+        try {
+            val addressList = geocoder.getFromLocationName(locationName, 1)
+            if (addressList != null) {
+                if (addressList.isNotEmpty()) {
+                    val address = addressList[0]
+                    val foundLocation = GeoPoint(address.latitude, address.longitude)
+
+                    // Move the map to the found location
+                    val mapController: IMapController = binding.map.controller
+                    mapController.setZoom(18.0)
+                    mapController.setCenter(foundLocation)
+
+                    // Create a marker at the found location
+                    longPressOnMap(foundLocation)
+                } else {
+                    Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error searching for location", Toast.LENGTH_SHORT).show()
+        }
     }
 
 

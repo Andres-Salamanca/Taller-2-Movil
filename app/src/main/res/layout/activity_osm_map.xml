@@ -19,9 +19,10 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="text"
+        android:imeOptions="actionDone"
         android:hint="Ingresa el lugar"
         android:layout_marginLeft="100dp"
         android:layout_marginTop="30dp"
         android:padding="10dp"
-        android:background="@drawable/rectangulo_redondeado"/>
+        android:background="@drawable/rectangulo_redondeado" />
 </FrameLayout>
