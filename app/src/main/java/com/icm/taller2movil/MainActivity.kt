@@ -22,6 +22,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(pasarContactos)
         }
 
+        bindingMain.imageButtonMapa.setOnClickListener(){
+            val intentMapaOsm = Intent(this,OsmMap::class.java)
+            startActivity(intentMapaOsm)
+        }
+
 
     }
 }
