@@ -22,6 +22,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(pasarContactos)
         }
 
+        bindingMain.imageButtonCamara.setOnClickListener{
+            val pasarcamara = Intent(this,CamaraActivity::class.java)
+            startActivity(pasarcamara)
+        }
+
 
     }
 }
