@@ -1,6 +1,7 @@
 package com.icm.taller2movil
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.preference.PreferenceManager
 import androidx.appcompat.app.AppCompatActivity
@@ -14,10 +15,13 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Geocoder
+import android.location.LocationManager
 import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
@@ -28,18 +32,19 @@ import kotlin.math.log
 
 class OsmMap : AppCompatActivity() {
 
+
     private lateinit var binding:ActivityOsmMapBinding
-    val latitud=4.62
-    val longitud = -74.07
-    val startPoint= GeoPoint(latitud,longitud)
+
     private lateinit var sensorManager: SensorManager
     private lateinit var lightSensor: Sensor
     private lateinit var sensorEventListener: SensorEventListener
     private  var longPressedMarker:Marker? = null
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //setContentView(R.layout.activity_osm_map)
+
         val ctx = applicationContext
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
         binding = ActivityOsmMapBinding.inflate(layoutInflater)
@@ -109,16 +114,26 @@ class OsmMap : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        binding.map.onResume()
-        val mapcontroller:IMapController = binding.map.controller
-        mapcontroller.setZoom(18.0)
-        mapcontroller.setCenter(this.startPoint)
-        sensorManager.registerListener(
-            sensorEventListener,
-            lightSensor,
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
-        cambioMapa()
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+            binding.map.onResume()
+            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            if (location != null){
+                val currentLocation = GeoPoint(location.latitude, location.longitude)
+                val mapcontroller:IMapController = binding.map.controller
+
+                mapcontroller.setZoom(18.0)
+                mapcontroller.setCenter(currentLocation)
+
+                longPressOnMap(currentLocation)
+                sensorManager.registerListener(
+                    sensorEventListener,
+                    lightSensor,
+                    SensorManager.SENSOR_DELAY_NORMAL
+                )
+                cambioMapa()
+            }
+        }
     }
 
     override fun onPause() {
@@ -150,6 +165,7 @@ class OsmMap : AppCompatActivity() {
     }
 
     private fun searchLocationAndMoveMap(locationName: String) {
+
         val geocoder = Geocoder(this)
         try {
             val addressList = geocoder.getFromLocationName(locationName, 1)
@@ -174,6 +190,7 @@ class OsmMap : AppCompatActivity() {
             Toast.makeText(this, "Error searching for location", Toast.LENGTH_SHORT).show()
         }
     }
+
 
 
 }
