@@ -130,13 +130,15 @@ class OsmMap : AppCompatActivity() {
         sensorManager.unregisterListener(sensorEventListener)
     }
 
+    // Esta funcion sirve para crear el overlay para recibir los eventos en el mapa
     private fun createOverlayEvent():MapEventsOverlay{
         val receiver = object : MapEventsReceiver {
+            //override para que no haga nada con un single tap
             override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
                 return false
             }
 
-
+            //override para que cree un marcador cuando hay un longpreess
             override fun longPressHelper(p: GeoPoint): Boolean {
                 longPressOnMap(p)
                 return true
@@ -145,6 +147,7 @@ class OsmMap : AppCompatActivity() {
         return MapEventsOverlay(receiver)
     }
 
+    //funcion para que se ponga el marker en el mapa, quite la parte que quita los otros markers
     private fun longPressOnMap(p: GeoPoint) {
 
         //longPressedMarker?.let { binding.map.overlays.remove(it) }
@@ -156,6 +159,7 @@ class OsmMap : AppCompatActivity() {
 
 
 
+    // Es la funcion encargada de crear los markers
     private fun createMarker(p: GeoPoint, desc: String?, iconID: Int): Marker? {
         val geocoder = Geocoder(this)
         var NombreLugar= " "
