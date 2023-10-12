@@ -15,6 +15,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Geocoder
+import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
 import android.view.KeyEvent
@@ -22,14 +24,21 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.TilesOverlay
+import java.io.File
+import java.io.FileWriter
 import java.io.IOException
 import kotlin.math.log
 
 
+
+data class LocationData(val latitud: Double, val longitud: Double);
 class OsmMap : AppCompatActivity() {
 
 
@@ -39,9 +48,34 @@ class OsmMap : AppCompatActivity() {
     private lateinit var lightSensor: Sensor
     private lateinit var sensorEventListener: SensorEventListener
     private  var longPressedMarker:Marker? = null
+    private var ultimaUbicacion: Location? = null
+    private var locationManager: LocationManager? = null
+
+    private val locationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            if (ultimaUbicacion == null || location.distanceTo(ultimaUbicacion!!) >= 30) {
+                val locationData = LocationData(location.latitude, location.longitude)
+                savedLocation(locationData)
+                ultimaUbicacion = location
+                val newLocation = GeoPoint(location.latitude, location.longitude)
+                updateMarkerAndMap(newLocation)
+            }
+        }
+
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+
+        override fun onProviderEnabled(provider: String) {}
+
+        override fun onProviderDisabled(provider: String) {}
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        //Solicitar actualizaciones de ubicacion
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+
         super.onCreate(savedInstanceState)
         //setContentView(R.layout.activity_osm_map)
 
@@ -73,8 +107,6 @@ class OsmMap : AppCompatActivity() {
             }
             false
         }
-
-
     }
 
     fun cambioMapa(){
@@ -102,24 +134,37 @@ class OsmMap : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
-            binding.map.onResume()
-            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            if (location != null){
-                val currentLocation = GeoPoint(location.latitude, location.longitude)
-                val mapcontroller:IMapController = binding.map.controller
+        //Rastear los cambios de ubicación y registrarla cuando se detecta movimiento a mas de 30m
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationManager?.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                1000,
+                10f,
+                locationListener
+            )
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                binding.map.onResume()
+                val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                if (location != null) {
+                    val currentLocation = GeoPoint(location.latitude, location.longitude)
+                    val mapcontroller: IMapController = binding.map.controller
 
-                mapcontroller.setZoom(18.0)
-                mapcontroller.setCenter(currentLocation)
+                    mapcontroller.setZoom(18.0)
+                    mapcontroller.setCenter(currentLocation)
 
-                longPressOnMap(currentLocation)
-                sensorManager.registerListener(
-                    sensorEventListener,
-                    lightSensor,
-                    SensorManager.SENSOR_DELAY_NORMAL
-                )
-                cambioMapa()
+                    longPressOnMap(currentLocation)
+                    sensorManager.registerListener(
+                        sensorEventListener,
+                        lightSensor,
+                        SensorManager.SENSOR_DELAY_NORMAL
+                    )
+                    cambioMapa()
+                }
             }
         }
     }
@@ -132,6 +177,7 @@ class OsmMap : AppCompatActivity() {
 
     // Esta funcion sirve para crear el overlay para recibir los eventos en el mapa
     private fun createOverlayEvent():MapEventsOverlay{
+
         val receiver = object : MapEventsReceiver {
             //override para que no haga nada con un single tap
             override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
@@ -155,6 +201,10 @@ class OsmMap : AppCompatActivity() {
         longPressedMarker = createMarker(p, null, R.drawable.baseline_push_pin_24)
         longPressedMarker?.let { binding.map.overlays.add(it) }
         binding.map.invalidate()
+
+        //Llamamos a la función para guardar el registro
+        val newLocation = LocationData(p.latitude, p.longitude)
+        savedLocation(newLocation)
     }
 
 
@@ -214,6 +264,55 @@ class OsmMap : AppCompatActivity() {
             e.printStackTrace()
             Toast.makeText(this, "Error searching for location", Toast.LENGTH_SHORT).show()
         }
+    }
+
+
+    //Función para crear el archivo json y guardar la información en el
+    private fun savedLocation(locationData: LocationData) {
+        try {
+            // Cambiar el directorio de almacenamiento a externo
+            val filename = "location_data.json"
+            val jsonFile = File(getExternalFilesDir(null), filename)
+            val jsonArray: JSONArray
+
+            if (jsonFile.exists()) {
+                val jsonString = jsonFile.readText()
+                jsonArray = JSONArray(jsonString)
+            } else {
+                jsonArray = JSONArray()
+            }
+
+            val locationObject = JSONObject()
+            locationObject.put("Latitud", locationData.latitud)
+            locationObject.put("Longitud", locationData.longitud)
+            jsonArray.put(locationObject)
+
+            FileWriter(jsonFile).use { fileWriter -> fileWriter.write(jsonArray.toString()) }
+        } catch (e: JSONException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error saving location data", Toast.LENGTH_SHORT).show()
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error saving location data", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateMarkerAndMap(newLocation: GeoPoint) {
+        // Elimina el marcador anterior (si lo hubiera)
+        longPressedMarker?.let { binding.map.overlays.remove(it) }
+        // Crea un nuevo marcador en la nueva ubicación
+        longPressedMarker = createMarker(newLocation, null, R.drawable.baseline_push_pin_24)
+        // Agrega el nuevo marcador al mapa
+        longPressedMarker?.let { binding.map.overlays.add(it) }
+        // Centra el mapa en la nueva ubicación
+        val mapController: IMapController = binding.map.controller
+        mapController.setZoom(18.0)
+        mapController.setCenter(newLocation)
+        // Llama a la función para guardar el registro
+        val newLocationData = LocationData(newLocation.latitude, newLocation.longitude)
+        savedLocation(newLocationData)
+        // Actualiza la vista del mapa
+        binding.map.invalidate()
     }
 
 
