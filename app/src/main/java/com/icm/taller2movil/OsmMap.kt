@@ -205,6 +205,19 @@ class OsmMap : AppCompatActivity() {
         //Llamamos a la función para guardar el registro
         val newLocation = LocationData(p.latitude, p.longitude)
         savedLocation(newLocation)
+
+        //Calcular la distancia entre la ubicación actual y el marcador
+        val currentLocation = ultimaUbicacion
+        if (currentLocation != null) {
+            val distance = ultimaUbicacion?.let { currentLocation.distanceTo(it) }
+            val distanceInKilometers = distance?.div(1000.0)
+            val distanceMessage = "Distancia a marcador: ${"%.2f".format(distanceInKilometers)} km"
+            Toast.makeText(this, distanceMessage, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Ubicación actual no disponible", Toast.LENGTH_SHORT).show()
+        }
+
+
     }
 
 
