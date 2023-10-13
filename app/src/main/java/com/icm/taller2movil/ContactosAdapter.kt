@@ -30,6 +30,8 @@ class ContactsAdapter(private val context: Context, private val contactsList: Li
         // Set the contact name in the TextView
         val contactTextView = view.findViewById<TextView>(R.id.textView2)
         contactTextView.text = contactName
+        val numero = view.findViewById<TextView>(R.id.numero)
+        numero.text = (position + 1).toString()
 
         return view
     }

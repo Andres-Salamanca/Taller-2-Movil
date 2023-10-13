@@ -174,28 +174,29 @@ class CamaraActivity : AppCompatActivity() {
         try {
             val imageStream = contentResolver.openInputStream(imageUri!!)
             val originalBitmap = BitmapFactory.decodeStream(imageStream)
-
+            bindingCamara.imageView2.setImageBitmap(originalBitmap)
             // Rotate the original bitmap by 90 degrees
-            val matrix = Matrix()
-            matrix.postRotate(90f)
-
-            // Create a new rotated bitmap
-            val rotatedBitmap = Bitmap.createBitmap(
-                originalBitmap,
-                0,
-                0,
-                originalBitmap.width,
-                originalBitmap.height,
-                matrix,
-                true
-            )
+//            val matrix = Matrix()
+//            matrix.postRotate(90f)
+//
+//            // Create a new rotated bitmap
+//            val rotatedBitmap = Bitmap.createBitmap(
+//                originalBitmap,
+//                0,
+//                0,
+//                originalBitmap.width,
+//                originalBitmap.height,
+//                matrix,
+//                true
+//            )
 
             // Set the rotated bitmap to the ImageView
-            bindingCamara.imageView2.setImageBitmap(rotatedBitmap)
+
         } catch (e: IOException) {
             e.printStackTrace()
             // Handle the error, show a toast, or log the exception
         }
+
     }
 
 
