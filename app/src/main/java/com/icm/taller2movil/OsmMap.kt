@@ -23,6 +23,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONException
@@ -41,7 +42,7 @@ import java.io.IOException
 data class LocationData(val latitud: Double, val longitud: Double);
 class OsmMap : AppCompatActivity() {
 
-
+    val LOCATION_PERMISSION_REQUEST_CODE=2
     private lateinit var binding:ActivityOsmMapBinding
 
     private lateinit var sensorManager: SensorManager
@@ -94,6 +95,15 @@ class OsmMap : AppCompatActivity() {
         }
         cambioMapa()
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Si los permisos de ubicación no se han otorgado, solicítalos al usuario.
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
+        }
+
 
         binding.map.overlays.add(createOverlayEvent())
 
@@ -135,6 +145,7 @@ class OsmMap : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        cambioMapa()
         // Rastear los cambios de ubicación y registrarla cuando se detecta movimiento a más de 30m
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationManager?.requestLocationUpdates(
@@ -163,7 +174,7 @@ class OsmMap : AppCompatActivity() {
                         lightSensor,
                         SensorManager.SENSOR_DELAY_NORMAL
                     )
-                    cambioMapa()
+
                 }
             }
         }
@@ -333,6 +344,19 @@ class OsmMap : AppCompatActivity() {
         savedLocation(newLocationData)
         // Actualiza la vista del mapa
         binding.map.invalidate()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // El usuario otorgó permisos de ubicación, puedes realizar acciones relacionadas con la ubicación aquí.
+                // Por ejemplo, iniciar la solicitud de actualizaciones de ubicación.
+            } else {
+                // El usuario denegó los permisos de ubicación, puedes manejar esta situación aquí.
+                // Por ejemplo, mostrar un mensaje al usuario.
+            }
+        }
     }
 
 
