@@ -1,5 +1,6 @@
 package com.icm.taller2movil
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -22,7 +23,6 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONException
@@ -34,7 +34,7 @@ import org.osmdroid.views.overlay.TilesOverlay
 import java.io.File
 import java.io.FileWriter
 import java.io.IOException
-import kotlin.math.log
+
 
 
 
@@ -48,6 +48,7 @@ class OsmMap : AppCompatActivity() {
     private lateinit var lightSensor: Sensor
     private lateinit var sensorEventListener: SensorEventListener
     private  var longPressedMarker:Marker? = null
+    private  var marcadorPosicionInicial:Marker? = null
     private var ultimaUbicacion: Location? = null
     private var locationManager: LocationManager? = null
 
@@ -134,30 +135,29 @@ class OsmMap : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        //Rastear los cambios de ubicación y registrarla cuando se detecta movimiento a mas de 30m
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        // Rastear los cambios de ubicación y registrarla cuando se detecta movimiento a más de 30m
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationManager?.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
                 1000,
                 10f,
                 locationListener
             )
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 binding.map.onResume()
                 val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
                 val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 if (location != null) {
                     val currentLocation = GeoPoint(location.latitude, location.longitude)
-                    val mapcontroller: IMapController = binding.map.controller
+                    val mapController: IMapController = binding.map.controller
+                    mapController.setZoom(18.0)
+                    mapController.setCenter(currentLocation)
 
-                    mapcontroller.setZoom(18.0)
-                    mapcontroller.setCenter(currentLocation)
+                    if (marcadorPosicionInicial == null) {
+                        marcadorPosicionInicial = createMarker(currentLocation, "Mi ubicación", R.drawable.baseline_push_pin_24)
+                        binding.map.overlays.add(marcadorPosicionInicial)
+                    }
 
-                    longPressOnMap(currentLocation)
                     sensorManager.registerListener(
                         sensorEventListener,
                         lightSensor,
@@ -196,21 +196,28 @@ class OsmMap : AppCompatActivity() {
     //funcion para que se ponga el marker en el mapa, quite la parte que quita los otros markers
     private fun longPressOnMap(p: GeoPoint) {
 
-        //longPressedMarker?.let { binding.map.overlays.remove(it) }
+        // Elimina el marcador anterior (si lo hubiera)
+        if (longPressedMarker != marcadorPosicionInicial) {
+            longPressedMarker?.let { binding.map.overlays.remove(it) }
+        }
 
+        // Crea un nuevo marcador en la ubicación actual
         longPressedMarker = createMarker(p, null, R.drawable.baseline_push_pin_24)
         longPressedMarker?.let { binding.map.overlays.add(it) }
         binding.map.invalidate()
 
-        //Llamamos a la función para guardar el registro
-        val newLocation = LocationData(p.latitude, p.longitude)
-        savedLocation(newLocation)
+        // Llamamos a la función para guardar el registro
+        val newLocation = Location("newLocation")
+        newLocation.latitude = p.latitude
+        newLocation.longitude = p.longitude
 
-        //Calcular la distancia entre la ubicación actual y el marcador
-        val currentLocation = ultimaUbicacion
-        if (currentLocation != null) {
-            val distance = ultimaUbicacion?.let { currentLocation.distanceTo(it) }
-            val distanceInKilometers = distance?.div(1000.0)
+        Calculardistancia(ultimaUbicacion, newLocation)
+    }
+
+    private fun Calculardistancia(location1: Location?,location2: Location){
+        if (location1 != null) {
+            val distanceInMeters = location1.distanceTo(location2)
+            val distanceInKilometers = distanceInMeters?.div(1000.0)
             val distanceMessage = "Distancia a marcador: ${"%.2f".format(distanceInKilometers)} km"
             Toast.makeText(this, distanceMessage, Toast.LENGTH_SHORT).show()
         } else {
